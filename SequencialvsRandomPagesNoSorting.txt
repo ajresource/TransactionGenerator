@@ -1,0 +1,100 @@
+DESCRIPTION: Dataset Large - Sequencial pages vs Random
+170/170 (100%) Done
+0: jdbc:phoenix:> EXPLAIN select count(*) from transactions_v2 where ACCOUNTID IN ('03211112345620160607','03223423434520171223','03215423665820170307');
++--------------------------------------------------------------------------------------------------------------------------------------------------------------+
+|                                                                             PLAN                                                                             |
++--------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| CLIENT 41-CHUNK 16026367 ROWS 11324622154 BYTES PARALLEL 1-WAY SKIP SCAN ON 3 KEYS OVER TRANSACTIONS_V2 ['03211112345620160607'] - ['03223423434520171223']  |
+|     SERVER FILTER BY FIRST KEY ONLY                                                                                                                          |
+|     SERVER AGGREGATE INTO SINGLE ROW                                                                                                                         |
++--------------------------------------------------------------------------------------------------------------------------------------------------------------+
+0: jdbc:phoenix:> 170/170 (100%) Done
+0: jdbc:phoenix:> select count(*) from transactions_v2 where ACCOUNTID IN ('03211112345620160607','03223423434520171223','03215423665820170307');
++-----------+
+| COUNT(1)  |
++-----------+
+| 8367012   |
++-----------+
+0: jdbc:phoenix:> 170/170 (100%) Done
+0: jdbc:phoenix:> EXPLAIN select ACCOUNTID,count(*) from transactions_v2 where ACCOUNTID IN ('03211112345620160607','03223423434520171223','03215423665820170307') GROUP BY ACCOUNTID;
++--------------------------------------------------------------------------------------------------------------------------------------------------------------+
+|                                                                             PLAN                                                                             |
++--------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| CLIENT 41-CHUNK 16026367 ROWS 11324622154 BYTES PARALLEL 1-WAY SKIP SCAN ON 3 KEYS OVER TRANSACTIONS_V2 ['03211112345620160607'] - ['03223423434520171223']  |
+|     SERVER FILTER BY FIRST KEY ONLY                                                                                                                          |
+|     SERVER AGGREGATE INTO ORDERED DISTINCT ROWS BY [ACCOUNTID]                                                                                               |
+| CLIENT MERGE SORT                                                                                                                                            |
++--------------------------------------------------------------------------------------------------------------------------------------------------------------+
+0: jdbc:phoenix:> 170/170 (100%) Done
+0: jdbc:phoenix:> select ACCOUNTID,count(*) from transactions_v2 where ACCOUNTID IN ('03211112345620160607','03223423434520171223','03215423665820170307') GROUP BY ACCOUNTID;
++-----------------------+-----------+
+|       ACCOUNTID       | COUNT(1)  |
++-----------------------+-----------+
+| 03211112345620160607  | 8701      |
+| 03215423665820170307  | 8286143   |
+| 03223423434520171223  | 72168     |
++-----------------------+-----------+
+0: jdbc:phoenix:> 170/170 (100%) Done
+0: jdbc:phoenix:> EXPLAIN select count(*) from transactions_v2 where ACCOUNTID IN ('03211112345620160607','03223423434520171223','03215423665820170307') AND POSTINGDATETIME> TO_DATE('2017-01-01') AND  POSTINGDATETIME< TO_DATE('2017-05-01') AND DESCRIPTION LIKE '%in%' AND TRANSACTIONAMOUNT> 1200 AND TRANSACTIONAMOUNT < 3000;
++--------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+|                                                                                                          PLAN                                                            |
++--------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| CLIENT 41-CHUNK 16026367 ROWS 11324622154 BYTES PARALLEL 1-WAY SKIP SCAN ON 3 KEYS OVER TRANSACTIONS_V2 ['03211112345620160607'] - ['03223423434520171223']              |
+|     SERVER FILTER BY (POSTINGDATETIME > DATE '2017-01-01 00:00:00.000' AND POSTINGDATETIME < DATE '2017-05-01 00:00:00.000' AND DESCRIPTION LIKE '%in%' AND TRANSACTIONA |
+|     SERVER AGGREGATE INTO SINGLE ROW                                                                                                                                     |
++--------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+0: jdbc:phoenix:> 170/170 (100%) Done
+0: jdbc:phoenix:> select count(*) from transactions_v2 where ACCOUNTID IN ('03211112345620160607','03223423434520171223','03215423665820170307') AND POSTINGDATETIME> TO_DATE('2017-01-01') AND  POSTINGDATETIME< TO_DATE('2017-05-01') AND DESCRIPTION LIKE '%in%' AND TRANSACTIONAMOUNT> 1200 AND TRANSACTIONAMOUNT < 3000;
++-----------+
+| COUNT(1)  |
++-----------+
+| 207910    |
++-----------+
+0: jdbc:phoenix:> 170/170 (100%) Done
+0: jdbc:phoenix:> EXPLAIN select * from transactions_v2 where ACCOUNTID IN ('03211112345620160607','03223423434520171223','03215423665820170307') AND POSTINGDATETIME> TO_DATE('2017-01-01') AND  POSTINGDATETIME< TO_DATE('2017-05-01') AND DESCRIPTION LIKE '%in%' AND TRANSACTIONAMOUNT> 1200 AND TRANSACTIONAMOUNT < 3000   LIMIT 100 OFFSET 17000;
++--------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+|                                                                                                          PLAN                                                            |
++--------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| CLIENT 41-CHUNK 16026367 ROWS 11324622154 BYTES SERIAL 1-WAY ROUND ROBIN SKIP SCAN ON 3 KEYS OVER TRANSACTIONS_V2 ['03211112345620160607'] - ['03223423434520171223']    |
+|     SERVER FILTER BY (POSTINGDATETIME > DATE '2017-01-01 00:00:00.000' AND POSTINGDATETIME < DATE '2017-05-01 00:00:00.000' AND DESCRIPTION LIKE '%in%' AND TRANSACTIONA |
+|     SERVER OFFSET 17000                                                                                                                                                  |
+|     SERVER 17100 ROW LIMIT                                                                                                                                               |
+| CLIENT 100 ROW LIMIT                                                                                                                                                     |
++--------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+100 rows selected (60.077 seconds)
+
+EXPLAIN select * from transactions_v2 where ACCOUNTID IN ('03211112345620160607','03223423434520171223','03215423665820170307') AND POSTINGDATETIME> TO_DATE('2017-01-01') AND  POSTINGDATETIME< TO_DATE('2017-05-01') AND DESCRIPTION LIKE '%in%' AND TRANSACTIONAMOUNT> 1200 AND TRANSACTIONAMOUNT < 3000   LIMIT 100 OFFSET 17100;
++--------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+|                                                                                                          PLAN                                                            |
++--------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| CLIENT 41-CHUNK 16026367 ROWS 11324622154 BYTES SERIAL 1-WAY ROUND ROBIN SKIP SCAN ON 3 KEYS OVER TRANSACTIONS_V2 ['03211112345620160607'] - ['03223423434520171223']    |
+|     SERVER FILTER BY (POSTINGDATETIME > DATE '2017-01-01 00:00:00.000' AND POSTINGDATETIME < DATE '2017-05-01 00:00:00.000' AND DESCRIPTION LIKE '%in%' AND TRANSACTIONA |
+|     SERVER OFFSET 17100                                                                                                                                                  |
+|     SERVER 17200 ROW LIMIT                                                                                                                                               |
+| CLIENT 100 ROW LIMIT                                                                                                                                                     |
++--------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+100 rows selected (61.568 seconds)
+
+ EXPLAIN select * from transactions_v2 where ACCOUNTID IN ('03211112345620160607','03223423434520171223','03215423665820170307') AND POSTINGDATETIME> TO_DATE('2017-01-01') AND  POSTINGDATETIME< TO_DATE('2017-05-01') AND DESCRIPTION LIKE '%in%' AND TRANSACTIONAMOUNT> 1200 AND TRANSACTIONAMOUNT < 3000   LIMIT 100 OFFSET 17200;
++--------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+|                                                                                                          PLAN                                                            |
++--------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| CLIENT 41-CHUNK 16026367 ROWS 11324622154 BYTES SERIAL 1-WAY ROUND ROBIN SKIP SCAN ON 3 KEYS OVER TRANSACTIONS_V2 ['03211112345620160607'] - ['03223423434520171223']    |
+|     SERVER FILTER BY (POSTINGDATETIME > DATE '2017-01-01 00:00:00.000' AND POSTINGDATETIME < DATE '2017-05-01 00:00:00.000' AND DESCRIPTION LIKE '%in%' AND TRANSACTIONA |
+|     SERVER OFFSET 17200                                                                                                                                                  |
+|     SERVER 17300 ROW LIMIT                                                                                                                                               |
+| CLIENT 100 ROW LIMIT                                                                                                                                                     |
++--------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+100 rows selected (63.21 seconds)
+
+ EXPLAIN select * from transactions_v2 where ACCOUNTID IN ('03211112345620160607','03223423434520171223','03215423665820170307') AND POSTINGDATETIME> TO_DATE('2017-01-01') AND  POSTINGDATETIME< TO_DATE('2017-05-01') AND DESCRIPTION LIKE '%in%' AND TRANSACTIONAMOUNT> 1200 AND TRANSACTIONAMOUNT < 3000   LIMIT 100 OFFSET 100000;
++--------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+|                                                                                                          PLAN                                                            |
++--------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| CLIENT 41-CHUNK 16026367 ROWS 11324622154 BYTES SERIAL 1-WAY ROUND ROBIN SKIP SCAN ON 3 KEYS OVER TRANSACTIONS_V2 ['03211112345620160607'] - ['03223423434520171223']    |
+|     SERVER FILTER BY (POSTINGDATETIME > DATE '2017-01-01 00:00:00.000' AND POSTINGDATETIME < DATE '2017-05-01 00:00:00.000' AND DESCRIPTION LIKE '%in%' AND TRANSACTIONA |
+|     SERVER OFFSET 100000                                                                                                                                                 |
+|     SERVER 100100 ROW LIMIT                                                                                                                                              |
+| CLIENT 100 ROW LIMIT                                                                                                                                                     |
++--------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+100 rows selected (77.898 seconds)
